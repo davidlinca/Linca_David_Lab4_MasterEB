@@ -1,0 +1,34 @@
+﻿@model IEnumerable<Linca_David_Lab4_MasterEB.Models.PredictionHistory>
+
+@{
+    ViewData["Title"] = "Istoric predicții";
+}
+
+<h2>Istoric predicții</h2>
+<hr />
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Pasageri</th>
+            <th>Distanță</th>
+            <th>Timp (sec)</th>
+            <th>Tip plată</th>
+            <th>Preț prezis</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td>@item.PassengerCount</td>
+                <td>@item.TripDistance.ToString("F2")</td>
+                <td>@item.TripTimeInSecs</td>
+                <td>@item.PaymentType</td>
+                <td>@item.PredictedPrice.ToString("F2") RON</td>
+            </tr>
+        }
+    </tbody>
+</table>
