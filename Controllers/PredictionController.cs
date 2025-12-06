@@ -6,6 +6,8 @@ using static Linca_David_Lab4_MasterEB.PricePredictionModel;
 using Linca_David_Lab4_MasterEB.Data;
 using System;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Linca_David_Lab4_MasterEB.Controllers
 {
@@ -32,15 +34,12 @@ namespace Linca_David_Lab4_MasterEB.Controllers
                 return View(input);
             }
 
-            // Load the model
             MLContext mlContext = new MLContext();
-            // Create predection engine related to the loaded train model
             ITransformer mlModel =
             mlContext.Model.Load(@".\PricePredictionModel.mlnet", out var modelInputSchema);
 
             var predEngine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(mlModel);
 
-            // Try model on sample data to predict fair price
             ModelOutput result = predEngine.Predict(input);
             ViewBag.Price = result.Score;
 
@@ -68,6 +67,57 @@ namespace Linca_David_Lab4_MasterEB.Controllers
                 .ToListAsync();
 
             return View(history);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Dashboard()
+        {
+            var totalPredictions = await _context.PredictionHistories.CountAsync();
+
+            var paymentTypeStats = await _context.PredictionHistories
+            .GroupBy(p => p.PaymentType)
+            .Select(g => new PaymentTypeStat
+            {
+                PaymentType = g.Key,
+                AveragePrice = g.Average(x => x.PredictedPrice),
+                Count = g.Count()
+            })
+            .ToListAsync();
+
+            var allPredictions = await _context.PredictionHistories
+            .Select(p => p.PredictedPrice)
+            .ToListAsync();
+
+            var buckets = new List<PriceBucketStat>
+            {
+                new PriceBucketStat { Label = "0 - 10" },
+                new PriceBucketStat { Label = "10 - 20" },
+                new PriceBucketStat { Label = "20 - 30" },
+                new PriceBucketStat { Label = "30 - 50" },
+                new PriceBucketStat { Label = "> 50" }
+            };
+
+            foreach (var price in allPredictions)
+            {
+                if (price < 10)
+                    buckets[0].Count++;
+                else if (price < 20)
+                    buckets[1].Count++;
+                else if (price < 30)
+                    buckets[2].Count++;
+                else if (price < 50)
+                    buckets[3].Count++;
+                else
+                    buckets[4].Count++;
+            }
+
+            var vm = new DashboardViewModel
+            {
+                TotalPredictions = totalPredictions,
+                PaymentTypeStats = paymentTypeStats,
+                PriceBuckets = buckets
+            };
+            return View(vm);
         }
     }
 }
